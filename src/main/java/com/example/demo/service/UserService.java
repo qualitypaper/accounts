@@ -15,17 +15,18 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
-public class UserService {
+public class UserService implements UserDetailsService {
 
     private final UserRepository userRepository;
     private final UserAuthenticationRepository userAuthenticationRepository;
@@ -63,12 +64,11 @@ public class UserService {
         Authentication authentication  = authenticationManager.authenticate(
           new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword())
         );
-        SecurityContextHolder.getContext().setAuthentication(authentication);
 
         var user = userRepository.findUserByEmail(loginRequest.getEmail()).get();
         HashMap<String, Object> claims = new HashMap<>();
         claims.put("id", user.getId());
-        String jwtToken  = jwtService.generateToken(claims, user);
+        String jwtToken  = jwtService.generateToken(claims, user.getEmail());
         userAuthenticationRepository.save(new UserAuthentication(null, jwtToken, LocalDateTime.now(), user));
 
         return ResponseEntity.ok().body(new JwtResponse(jwtToken));
@@ -113,15 +113,22 @@ public class UserService {
 
     @Transactional
     public ResponseEntity<?> updatePassword(UpdatePasswordRequest request){
-        var user = userRepository.findUserByEmail(request.getEmail()).get();
-        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-        userRepository.save(user);
-        return null;
+        var user = userRepository.findUserByEmail(SecurityContextHolder.getContext().getAuthentication().getName()).get();
+        HashMap<String, String> result = new HashMap<>();
+        if(user.getPassword().equals(request.getOldPassword())){
+            user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+            userRepository.save(user);
+            result.put("success", "true");
+            return ResponseEntity.ok().body(result);
+        }
+        result.put("success", "false");
+        result.put("error", "match");
+        return ResponseEntity.ok().body(result);
     }
 
     public ResponseEntity<HashMap<String, String>> checkUserSession(String token){
         HashMap<String, String> result = new HashMap<>();
-        if(jwtService.isTokenExpired(token)){
+        if(jwtService.getExpirationDateFromToken(token).before(new Date())){
             result.put("logged_in", "false");
             return ResponseEntity.ok().body(result);
         } else{
@@ -153,11 +160,16 @@ public class UserService {
         return ResponseEntity.ok().body(result);
     }
 
+    public void updateAuthenticationType(String username, String oauthClientName){
+        AuthenticationType authenticationType = AuthenticationType.valueOf(oauthClientName.toUpperCase());
+        userRepository.updateAuthenticationType(username, authenticationType);
+    }
     public List<User> getAll(){
         return userRepository.findAll();
     }
     private String buildEmail(String name, String reason, String buttonText,  String link) {
-        return "<div style=\"font-family:Helvetica,Arial,sans-serif;font-size:16px;margin:0;color:#0b0c0c\">\n" +
+        return "<html>" +
+                "<div style=\"font-family:Helvetica,Arial,sans-serif;font-size:16px;margin:0;color:#0b0c0c\">\n" +
                 "\n" +
                 "<span style=\"display:none;font-size:1px;color:#fff;max-height:0\"></span>\n" +
                 "\n" +
@@ -222,6 +234,15 @@ public class UserService {
                 "    </tr>\n" +
                 "  </tbody></table><div class=\"yj6qo\"></div><div class=\"adL\">\n" +
                 "\n" +
-                "</div></div>";
+                "</div></div>" +
+                "</html";
     }
+
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        User user = userRepository.findUserByEmail(username).get();
+        if(user == null) throw new UsernameNotFoundException("User not found");
+        return user;
+    }
+
 }

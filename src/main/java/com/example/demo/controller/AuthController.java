@@ -4,6 +4,7 @@ import com.example.demo.config.jwt.JwtResponse;
 import com.example.demo.controller.dto.AuthenticationRequest;
 import com.example.demo.controller.dto.ForgetRequest;
 import com.example.demo.controller.dto.RegisterRequest;
+import com.example.demo.controller.dto.UpdatePasswordRequest;
 import com.example.demo.model.User;
 import com.example.demo.service.UserService;
 import lombok.AllArgsConstructor;
@@ -16,7 +17,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/auth")
 @AllArgsConstructor
-public class Controller {
+public class AuthController {
     private final UserService userService;
 
     @GetMapping("/hello")
@@ -39,19 +40,6 @@ public class Controller {
         return userService.setConfirmed(token);
     }
 
-    @PostMapping("/reset")
-    public ResponseEntity<?> forgetPassword(@RequestBody ForgetRequest request){
-        return userService.forgetPassword(request);
-    }
 
-    @PutMapping
-
-
-
-
-    @GetMapping("/getAll")
-    public List<User> getAll(){
-        return userService.getAll();
-    }
 
 }
