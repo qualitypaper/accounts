@@ -1,18 +1,13 @@
 package com.example.demo.config.jwt;
 
-import com.example.demo.KeyStoreConfig;
-import com.example.demo.config.AppConfig;
+import com.example.demo.config.KeyStoreConfig;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.io.Decoders;
-import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
-import java.security.Key;
 import java.util.Date;
 import java.util.Map;
 import java.util.function.Function;

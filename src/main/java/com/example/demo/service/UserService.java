@@ -26,7 +26,7 @@ import java.util.*;
 
 @Service
 @RequiredArgsConstructor
-public class UserService implements UserDetailsService {
+public class UserService{
 
     private final UserRepository userRepository;
     private final UserAuthenticationRepository userAuthenticationRepository;
@@ -47,6 +47,7 @@ public class UserService implements UserDetailsService {
                 .created(LocalDateTime.now())
                 .password(passwordEncoder.encode(signupRequest.getPassword()))
                 .roles(Role.ROLE_USER)
+                .authType(AuthenticationType.DATABASE)
                 .build();
         userRepository.save(user);
 
@@ -236,13 +237,6 @@ public class UserService implements UserDetailsService {
                 "\n" +
                 "</div></div>" +
                 "</html";
-    }
-
-    @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findUserByEmail(username).get();
-        if(user == null) throw new UsernameNotFoundException("User not found");
-        return user;
     }
 
 }
